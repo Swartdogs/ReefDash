@@ -7,6 +7,46 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
+        <StackPanel Grid.Column="0">
+            <StackPanel Orientation="Horizontal">
+                <Label Content="Server IP:" Width="70" />
+                <TextBox x:Name="_ipTextBox" Width="200" Text="127.0.0.1" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Label Content="Server Port:" Width="70"/>
+                <TextBox x:Name="_portTextBox" Width="200" Text="5000" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button x:Name="_updateButton" Content="Update" Margin="5" Click="_updateButton_Click" />
+                <Button x:Name="_connectButton" Content="Connect" Margin="5" Click="_connectButton_Click" />
+                <Button x:Name="_disconnectButton" Content="Disconnect" Margin="5" Click="_disconnectButton_Click" />
+                <Button x:Name="_startDataTransmissionButton" Content="Start" Margin="5" Click="_startDataTransmissionButton_Click" />
+                <Button x:Name="_stopDataTransmissionButton" Content="Stop" Margin="5" Click="_stopDataTransmissionButton_Click" />
+            </StackPanel>
+        </StackPanel>
+
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Label Grid.Row="0" Grid.Column="0" Content="Status:" />
+            <Label Grid.Row="0" Grid.Column="1" x:Name="_statusLabel" Content="Disconnected" />
+            <ScrollViewer x:Name="_textAreaScrollViewer" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                          VerticalAlignment="Stretch" HorizontalAlignment="Stretch" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="5"
+                          ScrollChanged="ScrollViewer_ScrollChanged">
+                <TextBlock x:Name="_textArea" HorizontalAlignment="Stretch" />
+            </ScrollViewer>
+        </Grid>
     </Grid>
 </Window>
