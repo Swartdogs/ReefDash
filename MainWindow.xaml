@@ -7,6 +7,73 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
+        <!-- Top Section: Match Timer Progress Bar -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="10" />
+        </Grid.RowDefinitions>
 
+        <!-- Progress Bar -->
+        <ProgressBar x:Name="ProgressBar" Height="20" HorizontalAlignment="Stretch" VerticalAlignment="Top"
+                     Margin="10" Maximum="100" Value="0" Grid.Row="0"/>
+
+        <!-- Left Section: Field Image and Overlays, ComboBox -->
+        <Grid Grid.Row="1">
+
+            <!-- Define two columns: Left column for ComboBox and Field, Right column for Event Cards -->
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="450" />
+                <!-- ComboBox + Field Image Column -->
+                <ColumnDefinition Width="*" />
+                <!-- Event Cards Column -->
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Side: ComboBox for Autonomous Mode and Field Image with Overlays -->
+            <StackPanel Grid.Column="0" VerticalAlignment="Top" HorizontalAlignment="Stretch">
+                <!-- Combo Box for Autonomous Mode -->
+                <ComboBox x:Name="AutonomousModeComboBox" HorizontalAlignment="Stretch" Margin="10"
+                      VerticalAlignment="Top" IsEnabled="False">
+                    <ComboBoxItem Content="Mode 1" />
+                    <ComboBoxItem Content="Mode 2" />
+                    <ComboBoxItem Content="Mode 3" />
+                </ComboBox>
+
+                <!-- Field Image and Canvas Overlay (below ComboBox) -->
+                <Grid Margin="0,50,0,0">
+                    <!-- Added top margin to space out the combo box and the field-->
+                    <Image x:Name="FieldImage" Source="field_image.png" Stretch="UniformToFill"
+                       HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+
+                    <!-- Canvas for Overlays (path, robot position) -->
+                    <Canvas x:Name="FieldOverlay" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <!-- Example path and robot position overlay -->
+                        <Line X1="50" Y1="100" X2="200" Y2="150" Stroke="Red" StrokeThickness="2" />
+                        <Ellipse Canvas.Left="150" Canvas.Top="150" Width="10" Height="10" Fill="Green" />
+                    </Canvas>
+                </Grid>
+            </StackPanel>
+
+            <!-- Right Side: Event Cards Area -->
+            <StackPanel Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                    Margin="10">
+                <Button x:Name="ClearErrorButton" Content="Clear Errors" HorizontalAlignment="Left" VerticalAlignment="Top"
+                    Margin="5" Click="ClearErrorButton_Click" />
+
+                <StackPanel x:Name="EventCardsPanel" HorizontalAlignment="Stretch" VerticalAlignment="Top"
+                        Margin="5">
+                    <!-- Dynamic event cards will be added here-->
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+
+
+        <!-- Connection Status Indicator -->
+        <Border Name="ConnectionStatusIndicator" VerticalAlignment="Stretch" Grid.Row="2">
+            <Border.Background>
+                <SolidColorBrush Color="Yellow" />
+                <!-- Default color (Disconnected) -->
+            </Border.Background>
+        </Border>
     </Grid>
 </Window>
