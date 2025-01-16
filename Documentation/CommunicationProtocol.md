@@ -178,7 +178,70 @@ command, the server will respond with `EVENT:`.
 
 ### BUTTON
 
+This command allows the client to indicate to the server that a particular
+Button on the client UI is being pressed using indices received from prior
+`QUERY` commands.
 
+The client will indicate when a Button is initially pressed, and will continue
+to send messages to the server indicating the button is being held. Once a
+Button is released, the client will send a final message indicating as such.
+
+Messages indicating a Button is held should be transmitted every 250
+milliseconds, and the server should assume a Button has been released if it has
+not received a message from the client indicating as such within 500
+milliseconds.
+
+Messages are of the format: `BUTTON:<N>|<B>...`
+
+where:
+- `<N>` is the index of the Button
+- `<B>` is the state of the Button as a boolean (`true` or `false`)
+
+Multiple Buttons' states can be provided from the client in a single message. In
+this case, Button states are provided as a comma-separated list.
+
+The server will respond by replacing the state of each Button with either an
+`ACK` or a `NACK`, depending on if the state for that particular index is
+accepted or rejected.
+
+The example below illustrates a scenario where a Button is pressed, held for
+some time, and released. Messages transmitted by the client are prepended with
+`C:`, and messages transmitted by the server are prepended with `S:`. These
+identifiers are NOT actually transmitted, just the content that follows.
+
+```
+C: BUTTON:1|true
+S: BUTTON:1|ACK
+C: BUTTON:1|true
+S: BUTTON:1|ACK
+C: BUTTON:1|true
+S: BUTTON:1|ACK
+C: BUTTON:1|false
+S: BUTTON:1|ACK
+```
+
+The example below illustrates an example where 1 Button is pressed, then
+another is pressed, held, released, then the 1st Button is released:
+
+```
+C: BUTTON:1|true
+S: BUTTON:1|ACK
+C: BUTTON:1|true,2|true
+S: BUTTON:1|ACK,2|ACK
+C: BUTTON:1|true,2|true
+S: BUTTON:1|ACK,2|ACK
+C: BUTTON:1|true,2|false
+S: BUTTON:1|ACK,2|ACK
+C: BUTTON:1|true
+S: BUTTON:1|ACK
+C: BUTTON:1|false
+S: BUTTON:1|ACK
+```
 
 ### PING
 
+This message conveys and requests no information, but is used to help the
+client understand if it's connected to the server. This message is ONLY
+transmitted if no other commands have been transmitted in the last 2 seconds.
+
+The client's message is simply `PING`. The server's response is simply `PONG`.
