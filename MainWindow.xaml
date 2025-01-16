@@ -57,9 +57,13 @@
             <!-- Right Side: Event Cards Area -->
             <StackPanel Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                     Margin="10">
-                <Button x:Name="ClearErrorButton" Content="Clear Errors" HorizontalAlignment="Left" VerticalAlignment="Top"
-                    Margin="5" Click="ClearErrorButton_Click" />
-
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="AddErrorButton" Content="Add Error" HorizontalAlignment="Left" VerticalAlignment="Top"
+                            Margin="5" Click="AddErrorButton_Click" />
+                    <Button x:Name="AddInfoButton" Content="Add Info" HorizontalAlignment="Left" VerticalAlignment="Top"
+                            Margin="5" Click="AddInfoButton_Click" />
+                </StackPanel>
+                
                 <StackPanel x:Name="EventCardsPanel" HorizontalAlignment="Stretch" VerticalAlignment="Top"
                         Margin="5">
                     <!-- Dynamic event cards will be added here-->

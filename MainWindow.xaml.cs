@@ -33,9 +33,14 @@ public partial class MainWindow : Window
         timer.Start();
     }
 
-    private void ClearErrorButton_Click(object sender, RoutedEventArgs e)
+    private void AddInfoButton_Click(object sender, RoutedEventArgs e)
     {
-        EventCardsPanel.Children.Clear();
+        AddEventCard("This is an info message!", "info");
+    }
+
+    private void AddErrorButton_Click(object sender, RoutedEventArgs e)
+    {
+        AddEventCard("This is an error message!", "error");
     }
 
     private void UpdateProgressBar(int remainingTime, int totalTime)
@@ -72,25 +77,18 @@ public partial class MainWindow : Window
 
     private void AddEventCard(string eventMessage, string severity)
     {
-        var eventCard = new StackPanel
+        var eventCard = new EventCard
         {
-            Background = severity == "error" ? Brushes.Red : Brushes.Yellow,
-            Margin = new Thickness(5)
+            Message = eventMessage,
+            BorderColor = severity == "error" ? Brushes.Red : Brushes.Green
         };
-
-        var messageLabel = new TextBlock
-        {
-            Text = eventMessage,
-            Foreground = Brushes.White
-        };
-        eventCard.Children.Add(messageLabel);
 
         EventCardsPanel.Children.Add(eventCard);
 
-        if (severity == "notice")
+        if (severity != "error")
         {
             var timer = new System.Windows.Threading.DispatcherTimer();
-            timer.Interval = TimeSpan.FromSeconds(5);
+            timer.Interval = TimeSpan.FromSeconds(3);
             timer.Tick += (s, e) =>
             {
                 EventCardsPanel.Children.Remove(eventCard);
