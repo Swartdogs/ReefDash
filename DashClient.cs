@@ -3,14 +3,15 @@ using System.Net.Sockets;
 
 namespace ReefDash;
 
+public enum ElementType
+{
+    RobotValue,
+    DashboardValue,
+    Button
+}
+
 public class DashClient
 {
-    public enum EventType
-    {
-        Error,
-        Notice
-    }
-
     private string                  _serverIp;
     private int                     _serverPort;
     private TcpClient               _tcpClient;
@@ -18,18 +19,12 @@ public class DashClient
     private StreamReader            _reader;
     private StreamWriter            _writer;
     private CancellationTokenSource _connectionCancellation;
-    private CancellationTokenSource _pingCancellation;
-    private CancellationTokenSource _dataCancellation;
-    private CancellationTokenSource _eventCancellation;
     private bool                    _isConnected;
     private bool                    _isConnecting;
-    private bool                    _sendDataEnabled;
-    private bool                    _sendEventEnabled;
 
-    public event Action<string>            DataReceived;
-    public event Action<EventType, string> EventReceived;
-    public event Action<string>            LogMessage;
-    public event Action<bool>              ConnectionStatusChanged;
+    public event Action<string> ServerResponseReceived;
+    public event Action<string> ClientCommandTransmitted;
+    public event Action<bool>   ConnectionStatusChanged;
 
     public bool IsConnected => _isConnected;
 
@@ -38,7 +33,6 @@ public class DashClient
         _serverIp = ip;
         _serverPort = port;
         _tcpClient = new TcpClient();
-        _sendDataEnabled = true;
         _isConnected = false;
         _isConnecting = false;
     }
@@ -64,45 +58,13 @@ public class DashClient
             _serverIp = ip;
             _serverPort = port;
 
-            LogMessage?.Invoke($"Updated server address/port: {_serverIp}:{_serverPort}");
+            Console.WriteLine($"Updated server address/port: {_serverIp}:{_serverPort}");
 
             if (_isConnected)
             {
                 Disconnect();
                 StartConnectionLoop();
             }
-        }
-    }
-
-    public void EnableDataTransmission(bool enable)
-    {
-        _sendDataEnabled = enable;
-
-        if (_sendDataEnabled)
-        {
-            LogMessage?.Invoke($"Starting data message transmission request");
-            StartDataRequestLoop();
-        }
-        else
-        {
-            LogMessage?.Invoke($"Stopping data message transmission request");
-            StopDataRequestLoop();
-        }
-    }
-
-    public void EnableEventTransmission(bool enable)
-    {
-        _sendEventEnabled = enable;
-
-        if (_sendEventEnabled)
-        {
-            LogMessage?.Invoke($"Starting event message transmission request");
-            StartEventRequestLoop();
-        }
-        else
-        {
-            LogMessage?.Invoke($"Stopping event message transmission request");
-            StopEventRequestLoop();
         }
     }
 
@@ -113,7 +75,7 @@ public class DashClient
         _connectionCancellation = new CancellationTokenSource();
         var token = _connectionCancellation.Token;
 
-        LogMessage?.Invoke($"Starting connection loop to {_serverIp}:{_serverPort}");
+        Console.WriteLine($"Starting connection loop to {_serverIp}:{_serverPort}");
 
         Task.Run(async () =>
         {
@@ -143,7 +105,7 @@ public class DashClient
             if (cancellationToken.IsCancellationRequested)
                 return;
 
-            LogMessage?.Invoke($"Trying to connect to {_serverIp}:{_serverPort}");
+            Console.WriteLine($"Trying to connect to {_serverIp}:{_serverPort}");
 
             _tcpClient = new TcpClient();
             await _tcpClient.ConnectAsync(_serverIp, _serverPort);
@@ -151,7 +113,7 @@ public class DashClient
             if (cancellationToken.IsCancellationRequested)
                 return;
 
-            LogMessage?.Invoke("Connected to server");
+            Console.WriteLine("Connected to server");
 
             _isConnected = true;
             ConnectionStatusChanged?.Invoke(_isConnected);
@@ -159,18 +121,6 @@ public class DashClient
             _stream = _tcpClient.GetStream();
             _reader = new StreamReader(_stream);
             _writer = new StreamWriter(_stream) { AutoFlush = true };
-            
-            StartPingLoop();
-
-            if (_sendDataEnabled)
-            {
-                StartDataRequestLoop();
-            }
-
-            if (_sendEventEnabled)
-            {
-                StartEventRequestLoop();
-            }
         }
         catch (Exception)
         {
@@ -181,196 +131,103 @@ public class DashClient
 
     private void Disconnect()
     {
-        LogMessage?.Invoke("Disconnecting from server");
+        Console.WriteLine("Disconnecting from server");
 
         _isConnected = false;
         ConnectionStatusChanged?.Invoke(_isConnected);
-        _pingCancellation?.Cancel();
-        _dataCancellation?.Cancel();
-        _eventCancellation?.Cancel();
         _tcpClient.Close();
     }
 
-    private void StartPingLoop()
+    public void SendQuery(ElementType type, int index)
     {
-        _pingCancellation?.Cancel();
-        _pingCancellation = new CancellationTokenSource();
-        var token = _pingCancellation.Token;
-
-        LogMessage?.Invoke($"Starting ping loop");
-
-        Task.Run(async () =>
+        if (_isConnected)
         {
-            while (!token.IsCancellationRequested)
+            string t = type switch
             {
-                if (_isConnected)
-                {
-                    await SendPingAsync();
-                }
+                ElementType.RobotValue     => "R",
+                ElementType.DashboardValue => "D",
+                ElementType.Button         => "B",
+                _                          => string.Empty
+            };
 
-                await Task.Delay(TimeSpan.FromSeconds(2));
+            if (t == string.Empty)
+            {
+                return;
             }
-        });
+
+            _ = SendClientMessage($"QUERY:{t}{index}");
+        }
+
     }
 
-    private async Task SendPingAsync()
+    public void SendGet(params int[] indices)
     {
-        try
+        SendGet(indices as IEnumerable<int>);
+    }
+
+    public void SendGet(IEnumerable<int> indices)
+    {
+        if (_isConnected)
         {
-            await _writer.WriteLineAsync("PING");
-            LogMessage?.Invoke("Client: PING");
-
-            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(1));
-            var responseTask = _reader.ReadLineAsync();
-
-            if (await Task.WhenAny(responseTask, timeoutTask) == timeoutTask)
-            {
-                LogMessage?.Invoke("PING timeout");
-                // Timeout
-                Disconnect();
-            }
-            else
-            {
-                string? response = await responseTask;
-                LogMessage?.Invoke($"Server: {response}");
-
-                if (response != "PONG")
-                {
-                    // Unexpected response, disconnect
-                    Disconnect();
-                }
-            }
-        }
-        catch (Exception)
-        {
-            LogMessage?.Invoke("Ping exception");
-            Disconnect();
+            _ = SendClientMessage($"GET:{string.Join(",", indices)}");
         }
     }
 
-    private void StartDataRequestLoop()
+    public void SendSet()
     {
-        _dataCancellation?.Cancel();
-        _dataCancellation = new CancellationTokenSource();
-        var token = _dataCancellation.Token;
 
-        LogMessage?.Invoke($"Starting data request loop");
-
-        Task.Run(async () =>
-        {
-            while (!token.IsCancellationRequested)
-            {
-                if (_isConnected)
-                {
-                    await SendDataRequestAsync();
-                }
-
-                await Task.Delay(TimeSpan.FromMilliseconds(250));
-            }
-        });
     }
 
-    private async Task SendDataRequestAsync()
+    public void SendEvent()
+    {
+        if (_isConnected)
+        {
+            _ = SendClientMessage($"EVENT:");
+        }
+    }
+
+    public void SendButton()
+    {
+
+    }
+
+    public void SendPing()
+    {
+        _ = SendClientMessage("PING");
+    }
+
+    private async Task SendClientMessage(string message)
     {
         try
         {
-            await _writer.WriteLineAsync("DATA");
-            LogMessage?.Invoke("Client: DATA");
+            ClientCommandTransmitted?.Invoke(message);
+            await _writer.WriteLineAsync(message);
 
-            var timeoutTask = Task.Delay(TimeSpan.FromMilliseconds(250));
-            var responseTask = _reader.ReadLineAsync();
-
-            if (await Task.WhenAny(responseTask, timeoutTask) == responseTask)
-            {
-                string? response = await responseTask;
-                LogMessage?.Invoke($"Server: {response}");
-                DataReceived?.Invoke(response ?? string.Empty);
-            }
+            await ReceiveServerMessage();
         }
         catch (Exception e)
         {
-            LogMessage?.Invoke("Error receiving data request response: " + e.Message);
+            Console.WriteLine(e.Message);
         }
     }
 
-    private void StartEventRequestLoop()
-    {
-        _eventCancellation?.Cancel();
-        _eventCancellation = new CancellationTokenSource();
-        var token = _eventCancellation.Token;
-
-        LogMessage?.Invoke($"Starting event request loop");
-
-        Task.Run(async () =>
-        {
-            while (!token.IsCancellationRequested)
-            {
-                if (_isConnected)
-                {
-                    await SendEventRequestAsync();
-                }
-
-                await Task.Delay(TimeSpan.FromSeconds(0.5));
-            }
-        });
-    }
-
-    private async Task SendEventRequestAsync()
+    private async Task ReceiveServerMessage()
     {
         try
         {
-            await _writer.WriteLineAsync("EVENT");
-            LogMessage?.Invoke("Client: EVENT");
-
-            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(0.5));
-            var responseTask = _reader.ReadLineAsync();
-
-            if (await Task.WhenAny(responseTask, timeoutTask) == responseTask)
-            {
-                string? response = await responseTask;
-                LogMessage?.Invoke($"Server: {response}");
-
-                if (response?.StartsWith("EVENT:") ?? false)
-                {
-                    var events = response.Substring("EVENT:".Length).Split('|');
-
-                    foreach (var e in events)
-                    {
-                        var parts = e.Split(",", 2);
-
-                        var eventType = parts[0] switch
-                        {
-                            "notice" => EventType.Notice,
-                            "error"  => EventType.Error,
-                            _        => throw new Exception($"Unknown event type {parts[0]}")
-                        };
-
-                        EventReceived?.Invoke(eventType, parts[1]);
-                    }
-                }
-            }
+            string response = await _reader.ReadLineAsync() ?? string.Empty;
+            ServerResponseReceived?.Invoke(response);
         }
         catch (Exception e)
         {
-            LogMessage?.Invoke($"Error receiving event request response: " + e.Message);
+            Console.WriteLine(e.Message);
+            throw;
         }
     }
 
     private void StopConnectionLoop()
     {
-        LogMessage?.Invoke("Stopping connection loop");
+        Console.WriteLine("Stopping connection loop");
         _connectionCancellation?.Cancel();
-    }
-
-    private void StopDataRequestLoop()
-    {
-        LogMessage?.Invoke("Stopping data request loop");
-        _dataCancellation?.Cancel();
-    }
-
-    private void StopEventRequestLoop()
-    {
-        LogMessage?.Invoke("Stopping event request loop");
-        _eventCancellation?.Cancel();
     }
 }
