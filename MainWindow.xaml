@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ReefDash"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="50" Width="50">
     <Grid>
-
+        <Button x:Name="_fieldButton" Content="Field" Click="ToggleFieldView"/>
     </Grid>
 </Window>

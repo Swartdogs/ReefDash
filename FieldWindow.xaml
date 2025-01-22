@@ -1,0 +1,18 @@
+﻿<Window x:Class="ReefDash.FieldWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ReefDash"
+        mc:Ignorable="d"
+        Title="FieldWindow" Height="450" Width="800"
+        SizeChanged="Window_SizeChanged"
+        Background="Blue">
+    <Grid>
+        <Viewbox HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Image x:Name="FieldImage" Source="image.png" Stretch="Uniform" Loaded="FieldImage_Loaded" />
+        </Viewbox>
+
+        <Canvas x:Name="DrawingCanvas" Background="Transparent" />
+    </Grid>
+</Window>
